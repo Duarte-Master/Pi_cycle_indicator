@@ -21,7 +21,7 @@ def plot_timeseries_data(filepath, start_date=None, end_date=None):
     """
     Loads data, calculates indicators, and plots the result using Plotly.
     """
-    st.write(f"Loading data from: {filepath}...")
+    st.write(f"Created by Gonçalo Duarte\n Loading data from: {filepath}...")
 
     try:
         df = pd.read_csv(filepath, thousands=',')
@@ -181,12 +181,14 @@ def plot_timeseries_data(filepath, start_date=None, end_date=None):
         template="plotly_dark", 
         hovermode="x unified", 
         
-        # ADDED: Increase bottom margin to create space for the rangeslider
+        # CRITICAL CHANGE: Increase bottom margin to create space for the rangeslider
+        # This pushes the Z-Score title up, preventing overlap.
         margin=dict(b=70), 
         
         # Rangeslider is applied to the shared X-axis (the bottom one)
         xaxis=dict(
             rangeslider=dict(
+                # CRITICAL CHANGE: Set visible to True to keep the slider
                 visible=True,
                 # REDUCED: Decrease the rangeslider thickness
                 thickness=0.04, 
@@ -195,12 +197,13 @@ def plot_timeseries_data(filepath, start_date=None, end_date=None):
             title_text="Date"
         ),
         
-        # Apply the selected date range from the Streamlit slider
+        # We no longer need this x-axis filter since the Plotly slider controls the view.
+        # We can keep it or remove it; leaving it as None is safer.
         xaxis2=dict(
-            range=[start_date, end_date] if start_date is not None and end_date is not None else None,
+            range=None,
         )
     )
-    
+
     # 6. Display the interactive plot in Streamlit
     st.plotly_chart(fig, use_container_width=True)
 
@@ -220,19 +223,19 @@ if __name__ == '__main__':
         min_date_available = pd.to_datetime('2010-01-01').date()
         max_date_available = pd.to_datetime('today').date()
         
-    st.sidebar.header("Date Range Selection")
+    #st.sidebar.header("Date Range Selection")
     
     # 2. Create the Streamlit Date Slider
-    date_range = st.sidebar.slider(
-        "Select Time Period:",
-        min_value=min_date_available,
-        max_value=max_date_available,
-        value=(min_date_available, max_date_available), # Default to full range
-        format="YYYY-MM-DD"
-    )
+    #date_range = st.sidebar.slider(
+    #    "Select Time Period:",
+    #    min_value=min_date_available,
+    #    max_value=max_date_available,
+    #    value=(min_date_available, max_date_available), # Default to full range
+    #    format="YYYY-MM-DD"
+    #)
     
-    selected_start_date = date_range[0] 
-    selected_end_date = date_range[1]   
+    selected_start_date = min_date_available 
+    selected_end_date = max_date_available
 
     # CRITICAL FIX: Convert Python date objects to Pandas Timestamps
     start_date_filter = pd.to_datetime(selected_start_date)
@@ -240,6 +243,7 @@ if __name__ == '__main__':
     
     # 3. Call the plotting function with the CORRECTLY TYPED dates
     plot_timeseries_data(file_to_plot, start_date_filter, end_date_filter)
+
 
 
 
