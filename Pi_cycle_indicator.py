@@ -84,7 +84,7 @@ def plot_timeseries_data(filepath, start_date=None, end_date=None):
     fig = make_subplots(
         rows=2, cols=1, 
         shared_xaxes=True, 
-        vertical_spacing=0.05,
+        vertical_spacing=0.15,
         row_heights=[3, 1],
         subplot_titles=("BTC/USD Price Time Series (Log Scale) and Pi-Cycle Lines", "Pi-Cycle Z-Score")
     )
@@ -241,6 +241,7 @@ if __name__ == '__main__':
     
     # 3. Call the plotting function with the CORRECTLY TYPED dates
     plot_timeseries_data(file_to_plot, start_date_filter, end_date_filter)
+
 
 
 
