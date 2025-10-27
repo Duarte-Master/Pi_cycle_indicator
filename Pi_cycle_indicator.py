@@ -179,7 +179,7 @@ def plot_timeseries_data(filepath, start_date=None, end_date=None):
 # --- Global Layout Customization ---
     fig.update_layout(
         title_text='Bitcoin Pi-Cycle Indicator', 
-        height=900,
+        height=850,
         template="plotly_dark", 
         hovermode="x unified", 
         
@@ -241,6 +241,7 @@ if __name__ == '__main__':
     
     # 3. Call the plotting function with the CORRECTLY TYPED dates
     plot_timeseries_data(file_to_plot, start_date_filter, end_date_filter)
+
 
 
 
