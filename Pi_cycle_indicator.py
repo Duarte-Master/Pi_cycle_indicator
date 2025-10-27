@@ -7,7 +7,14 @@ import plotly.graph_objects as go          # <-- KEEP
 from plotly.subplots import make_subplots  # <-- KEEP
 
 # --- Custom SMA Function ---
-# ... (sma function remains unchanged) ...
+def sma(series, period):
+    """
+    Calculates the Simple Moving Average (SMA) for a given series.
+    Uses min_periods=period to return a value only when the full window is available.
+    """
+    # Use min_periods=period for standard indicator calculation.
+    return series.rolling(window=period, min_periods=period).mean()
+# --- End Custom SMA Function ---
 
 # MODIFIED: Function accepts optional start_date and end_date (now expected to be Timestamps)
 def plot_timeseries_data(filepath, start_date=None, end_date=None):
@@ -211,4 +218,5 @@ if __name__ == '__main__':
     
     # 3. Call the plotting function with the CORRECTLY TYPED dates
     plot_timeseries_data(file_to_plot, start_date_filter, end_date_filter)
+
 
