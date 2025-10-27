@@ -140,9 +140,31 @@ def plot_timeseries_data(filepath, start_date=None, end_date=None):
         row=2, col=1
     )
 
-    # 5. Add Z-Score Horizontal Lines
+# 5. Add Z-Score Horizontal Lines with Gradient Colors
+    
+    # Neutral/Zero Line
     fig.add_hline(y=0, line_dash="dash", line_color="gray", line_width=1, row=2, col=1)
+
+    # POSITIVE (RED) LINES - Fading to transparent (lower Alpha) closer to zero
+    
+    # +1 Line (Very Transparent Red) -> Alpha 0.2
+    fig.add_hline(y=1, line_dash="dash", line_color="rgba(255, 0, 0, 0.2)", line_width=1, row=2, col=1)
+    
+    # +2 Line (Moderately Transparent Red) -> Alpha 0.4
+    fig.add_hline(y=2, line_dash="dash", line_color="rgba(255, 0, 0, 0.4)", line_width=1, row=2, col=1)
+    
+    # +3 Line (Solid Red) -> Alpha 1.0 (or just 'red')
     fig.add_hline(y=3, line_dash="dash", line_color="red", line_width=2, row=2, col=1)
+    
+    # NEGATIVE (GREEN) LINES - Fading to transparent (lower Alpha) closer to zero
+    
+    # -1 Line (Very Transparent Green) -> Alpha 0.2
+    fig.add_hline(y=-1, line_dash="dash", line_color="rgba(0, 255, 0, 0.2)", line_width=1, row=2, col=1)
+    
+    # -2 Line (Moderately Transparent Green) -> Alpha 0.4
+    fig.add_hline(y=-2, line_dash="dash", line_color="rgba(0, 255, 0, 0.4)", line_width=1, row=2, col=1)
+    
+    # -3 Line (Solid Green) -> Alpha 1.0 (or just 'green')
     fig.add_hline(y=-3, line_dash="dash", line_color="green", line_width=2, row=2, col=1)
     
     fig.update_yaxes(
@@ -152,18 +174,22 @@ def plot_timeseries_data(filepath, start_date=None, end_date=None):
         showgrid=True
     )
     
-    # --- Global Layout Customization ---
+# --- Global Layout Customization ---
     fig.update_layout(
         title_text='Bitcoin Pi-Cycle Indicator', 
         height=800,
         template="plotly_dark", 
         hovermode="x unified", 
         
+        # ADDED: Increase bottom margin to create space for the rangeslider
+        margin=dict(b=70), 
+        
         # Rangeslider is applied to the shared X-axis (the bottom one)
         xaxis=dict(
             rangeslider=dict(
                 visible=True,
-                thickness=0.08,
+                # REDUCED: Decrease the rangeslider thickness
+                thickness=0.04, 
             ),
             type="date",
             title_text="Date"
@@ -174,14 +200,10 @@ def plot_timeseries_data(filepath, start_date=None, end_date=None):
             range=[start_date, end_date] if start_date is not None and end_date is not None else None,
         )
     )
-
+    
     # 6. Display the interactive plot in Streamlit
     st.plotly_chart(fig, use_container_width=True)
 
-# ... (__main__ block remains unchanged) ...
-
-
-# ... (__main__ block remains unchanged) ...
 if __name__ == '__main__':
     st.set_page_config(layout="wide") 
     st.title("Bitcoin Pi-Cycle Indicator Dashboard")
@@ -218,5 +240,6 @@ if __name__ == '__main__':
     
     # 3. Call the plotting function with the CORRECTLY TYPED dates
     plot_timeseries_data(file_to_plot, start_date_filter, end_date_filter)
+
 
 
