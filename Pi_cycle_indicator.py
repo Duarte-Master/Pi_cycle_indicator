@@ -21,7 +21,9 @@ def plot_timeseries_data(filepath, start_date=None, end_date=None):
     """
     Loads data, calculates indicators, and plots the result using Plotly.
     """
-    st.write(f"Created by Gonçalo Duarte\n Loading data from: {filepath}...")
+    #st.write(f"Created by Gonçalo Duarte\n Loading data from: {filepath}...")
+    st.write(f"Created by Gonçalo Duarte")
+    st.write(f"Loading data from: {filepath}...")
 
     try:
         df = pd.read_csv(filepath, thousands=',')
@@ -181,24 +183,20 @@ def plot_timeseries_data(filepath, start_date=None, end_date=None):
         template="plotly_dark", 
         hovermode="x unified", 
         
-        # CRITICAL CHANGE: Increase bottom margin to create space for the rangeslider
-        # This pushes the Z-Score title up, preventing overlap.
-        margin=dict(b=70), 
+        # CRITICAL CHANGE: Significantly increase bottom margin to push the subplot up.
+        margin=dict(b=150), 
         
         # Rangeslider is applied to the shared X-axis (the bottom one)
         xaxis=dict(
             rangeslider=dict(
-                # CRITICAL CHANGE: Set visible to True to keep the slider
                 visible=True,
-                # REDUCED: Decrease the rangeslider thickness
-                thickness=0.04, 
+                thickness=0.04, # Keep thickness minimal
             ),
             type="date",
             title_text="Date"
         ),
         
         # We no longer need this x-axis filter since the Plotly slider controls the view.
-        # We can keep it or remove it; leaving it as None is safer.
         xaxis2=dict(
             range=None,
         )
@@ -243,6 +241,7 @@ if __name__ == '__main__':
     
     # 3. Call the plotting function with the CORRECTLY TYPED dates
     plot_timeseries_data(file_to_plot, start_date_filter, end_date_filter)
+
 
 
 
