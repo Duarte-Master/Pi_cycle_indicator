@@ -1,28 +1,77 @@
 import streamlit as st
 import numpy as np
 import pandas as pd
-# import matplotlib.pyplot as plt          # <-- REMOVED
-# import matplotlib.dates as mdates        # <-- REMOVED
-import plotly.graph_objects as go          # <-- NEW: Import Plotly Graph Objects
-from plotly.subplots import make_subplots  # <-- NEW: Import for Subplots
+# import matplotlib.pyplot as plt          # <-- MUST REMOVE
+# import matplotlib.dates as mdates        # <-- MUST REMOVE
+import plotly.graph_objects as go          # <-- KEEP
+from plotly.subplots import make_subplots  # <-- KEEP
 
+# --- Custom SMA Function ---
 # ... (sma function remains unchanged) ...
 
-# ... (plot_timeseries_data function header remains unchanged) ...
+# MODIFIED: Function accepts optional start_date and end_date (now expected to be Timestamps)
 def plot_timeseries_data(filepath, start_date=None, end_date=None):
     """
     Loads data, calculates indicators, and plots the result using Plotly.
     """
     st.write(f"Loading data from: {filepath}...")
 
-    # ... (Data Loading, Preprocessing, and Indicator Calculation remain unchanged) ...
-    # This section calculates: price_data, ma_111, ma_350_double, zScore_valid
-    # ...
+    try:
+        df = pd.read_csv(filepath, thousands=',')
+    except FileNotFoundError:
+        st.error(f"Error: The file '{filepath}' was not found. Please check the path and filename.")
+        return
+    except Exception as e:
+        st.error(f"An error occurred while reading the CSV: {e}")
+        return
 
-    # --- NEW: Plotting Setup using Plotly ---
+    # ... (Data Preprocessing and Indicator Calculation remain unchanged) ...
+    date_column_name = 'Date'
+    price_column_name = 'Price'
+
+    if date_column_name not in df.columns or price_column_name not in df.columns:
+        missing = [col for col in [date_column_name, price_column_name] if col not in df.columns]
+        st.error(f"Error: Missing required columns: {', '.join(missing)}. Available columns: {df.columns.tolist()}")
+        return
+
+    try:
+        df[date_column_name] = pd.to_datetime(df[date_column_name], format='%m/%d/%Y')
+    except ValueError as e:
+        st.error(f"Error parsing dates: {e}. Check if the date format is strictly 'MM/DD/YYYY'.")
+        return
+
+    df.set_index(date_column_name, inplace=True)
+    price_data = df[price_column_name]
+    price_data = pd.to_numeric(price_data, errors='coerce')
+    price_data.dropna(inplace=True)
+
+    # Reindex to fill calendar gaps
+    if not price_data.empty:
+        start_date_full = price_data.index.min()
+        end_date_full = price_data.index.max()
+        full_date_range = pd.date_range(start=start_date_full, end=end_date_full, freq='D')
+        price_data = price_data.reindex(full_date_range).ffill()
+    price_data.dropna(inplace=True)
+
+    # Technical Analysis Calculation
+    ma_111 = sma(price_data, period=111)
+    ma_350_double = 2 * sma(price_data, period=350)
+    Pi_cycle_ratio = 2 - (ma_350_double / ma_111).replace([np.inf, -np.inf], np.nan)
+
+    thresholdTop = 1.05
+    thresholdBottom = -1.10
+    mean = (thresholdTop + thresholdBottom) / 2
+    bands_range = thresholdTop - thresholdBottom
+    stdDev = bands_range / 6 if bands_range != 0 else 0
     
-    # 1. Create a figure with two subplots: Price (row 1) and Z-Score (row 2)
-    # The specs set the relative heights and ensure the second subplot shares the x-axis
+    if stdDev != 0:
+        zScore = (Pi_cycle_ratio - mean) / stdDev
+    else:
+        zScore = pd.Series(0, index=Pi_cycle_ratio.index)
+    zScore_valid = zScore.dropna()
+    
+    # --- Plotting Setup using Plotly ---
+    
     fig = make_subplots(
         rows=2, cols=1, 
         shared_xaxes=True, 
@@ -33,13 +82,13 @@ def plot_timeseries_data(filepath, start_date=None, end_date=None):
     
     # --- Price Chart (Row 1) ---
 
-    # 2. Add Price Data (Primary Y-axis of the top plot)
+    # 2. Add Price Data (This is the line that had the potential NameError)
     fig.add_trace(
         go.Scatter(
-            x=price_data.index, y=price_data.values,
+            x=price_data.index, y=price_data.values, # <-- CORRECTED: Ensure we use price_data.values
             mode='lines', name='Price',
             line=dict(color='white', width=1),
-            hovertemplate='Date: %{x}<br>Price: $%{y:,.0f}<extra></extra>' # Custom hover format
+            hovertemplate='Date: %{x}<br>Price: $%{y:,.0f}<extra></extra>' 
         ),
         row=1, col=1
     )
@@ -68,13 +117,12 @@ def plot_timeseries_data(filepath, start_date=None, end_date=None):
         row=1, col=1
     )
 
-    # Set Y-axis to Log Scale for the Price Chart
     fig.update_yaxes(type="log", row=1, col=1, title_text="Price (USD) [Log Scale]", showgrid=True)
 
 
     # --- Z-Score Subplot (Row 2) ---
 
-    # 4. Add Z-Score Line (Primary Y-axis of the bottom plot)
+    # 4. Add Z-Score Line
     fig.add_trace(
         go.Scatter(
             x=zScore_valid.index, y=zScore_valid.values,
@@ -86,30 +134,23 @@ def plot_timeseries_data(filepath, start_date=None, end_date=None):
     )
 
     # 5. Add Z-Score Horizontal Lines
-    
-    # 0 line
     fig.add_hline(y=0, line_dash="dash", line_color="gray", line_width=1, row=2, col=1)
-    
-    # Key Buy/Sell Lines (Plotly does not support simple labels for hlines, so we omit them)
     fig.add_hline(y=3, line_dash="dash", line_color="red", line_width=2, row=2, col=1)
     fig.add_hline(y=-3, line_dash="dash", line_color="green", line_width=2, row=2, col=1)
     
-    # Set Z-Score Y-axis limits
     fig.update_yaxes(
         title_text="Z-Score", 
-        range=[-4.5, 4.5], # Fixed range for better visualization
+        range=[-4.5, 4.5], 
         row=2, col=1, 
         showgrid=True
     )
     
-    # --- Global Layout Customization (Sets size, background, and Range Slider) ---
-    
+    # --- Global Layout Customization ---
     fig.update_layout(
-        title_text='Bitcoin Pi-Cycle Indicator', # Main title
-        height=800, # Increased height for better visibility of two charts
-        # width=1200, # We will use Streamlit's container width instead of fixed width
-        template="plotly_dark", # Use a dark theme template
-        hovermode="x unified", # Shows all data for a given X-value on hover
+        title_text='Bitcoin Pi-Cycle Indicator', 
+        height=800,
+        template="plotly_dark", 
+        hovermode="x unified", 
         
         # Rangeslider is applied to the shared X-axis (the bottom one)
         xaxis=dict(
@@ -123,13 +164,14 @@ def plot_timeseries_data(filepath, start_date=None, end_date=None):
         
         # Apply the selected date range from the Streamlit slider
         xaxis2=dict(
-            range=[start_date, end_date] if start_date and end_date else None,
+            range=[start_date, end_date] if start_date is not None and end_date is not None else None,
         )
     )
 
     # 6. Display the interactive plot in Streamlit
-    # use_container_width=True ensures the plot scales to the full Streamlit column size.
     st.plotly_chart(fig, use_container_width=True)
+
+# ... (__main__ block remains unchanged) ...
 
 
 # ... (__main__ block remains unchanged) ...
@@ -169,3 +211,4 @@ if __name__ == '__main__':
     
     # 3. Call the plotting function with the CORRECTLY TYPED dates
     plot_timeseries_data(file_to_plot, start_date_filter, end_date_filter)
+
