@@ -23,7 +23,7 @@ def plot_timeseries_data(filepath, start_date=None, end_date=None):
     """
     #st.write(f"Created by Gonçalo Duarte\n Loading data from: {filepath}...")
     st.write(f"Created by Gonçalo Duarte")
-    st.write(f"Loading data from: {filepath}...")
+    #st.write(f"Loading data from: {filepath}...")
 
     try:
         df = pd.read_csv(filepath, thousands=',')
@@ -241,6 +241,7 @@ if __name__ == '__main__':
     
     # 3. Call the plotting function with the CORRECTLY TYPED dates
     plot_timeseries_data(file_to_plot, start_date_filter, end_date_filter)
+
 
 
 
