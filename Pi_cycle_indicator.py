@@ -13,15 +13,13 @@ def sma(series, period):
 # --- End Custom SMA Function ---
 
 
-# MODIFIED: Function now accepts optional start_date and end_date arguments
+# MODIFIED: Function accepts optional start_date and end_date (now expected to be Timestamps)
 def plot_timeseries_data(filepath, start_date=None, end_date=None):
     """
     Loads time series data, calculates indicators, and plots the result,
     applying date limits if provided by Streamlit sliders.
     """
     st.write(f"Loading data from: {filepath}...")
-
-    # ... (Data Loading and Preprocessing remains unchanged) ...
 
     try:
         df = pd.read_csv(filepath, thousands=',')
@@ -59,7 +57,7 @@ def plot_timeseries_data(filepath, start_date=None, end_date=None):
         price_data = price_data.reindex(full_date_range).ffill()
     price_data.dropna(inplace=True)
 
-    # ... (Technical Analysis Calculation remains unchanged) ...
+    # --- Technical Analysis Calculation (Using Fixed Logic) ---
     ma_111 = sma(price_data, period=111)
     ma_350_double = 2 * sma(price_data, period=350)
     Pi_cycle_ratio = 2 - (ma_350_double / ma_111).replace([np.inf, -np.inf], np.nan)
@@ -84,10 +82,10 @@ def plot_timeseries_data(filepath, start_date=None, end_date=None):
     ax = ax1
 
     # Apply x-limits based on Streamlit slider input
-    if start_date and end_date:
+    if start_date is not None and end_date is not None: # Check for not None
         ax1.set_xlim(start_date, end_date)
         
-        # Filtering for dynamic Y-axis scaling
+        # Filtering for dynamic Y-axis scaling (Uses the passed Timestamps)
         price_range = price_data[(price_data.index >= start_date) & (price_data.index <= end_date)]
         ma_111_range = ma_111[(ma_111.index >= start_date) & (ma_111.index <= end_date)]
         ma_350_double_range = ma_350_double[(ma_350_double.index >= start_date) & (ma_350_double.index <= end_date)]
@@ -102,8 +100,6 @@ def plot_timeseries_data(filepath, start_date=None, end_date=None):
             ax1.set_ylim(y_min, y_max)
     # End X/Y limit application
 
-    # ... (Plotting lines and aesthetics remains unchanged) ...
-    
     # Initial plot of the entire time series
     ax.plot(price_data.index, price_data.values, color='black', linewidth=1, label=price_column_name)
 
@@ -122,7 +118,7 @@ def plot_timeseries_data(filepath, start_date=None, end_date=None):
     ax.plot(ma_350_double.index, ma_350_double.values, color='green', linewidth=2, label=f'2 * 350 SMA: {latest_ma_350_double:.0f}')
 
     # Configure main plot aesthetics (ax1)
-    ax.set_title(f'BTC/USD Price Time Series (Log Scale) and Pi-Cycle Z-Score') # Removed filepath from title
+    ax.set_title(f'BTC/USD Price Time Series (Log Scale) and Pi-Cycle Z-Score') 
     ax.set_ylabel('Price (USD) [Log Scale]')
     ax.set_yscale('log')
     ax.grid(True, linestyle='--', alpha=0.6)
@@ -163,7 +159,7 @@ def plot_timeseries_data(filepath, start_date=None, end_date=None):
     ax2.xaxis.set_major_formatter(date_formatter)
     fig.autofmt_xdate(rotation=45)
 
-    # ... (Watermark remains unchanged) ...
+    # Watermark
     watermark_text = 'Gonçalo Duarte'
     fig.text(
         0.5, 0.5, watermark_text,
@@ -181,7 +177,7 @@ def plot_timeseries_data(filepath, start_date=None, end_date=None):
 
 
 if __name__ == '__main__':
-    st.set_page_config(layout="wide") # Optional: Use wide layout for better view
+    st.set_page_config(layout="wide") 
     st.title("Bitcoin Pi-Cycle Indicator Dashboard")
     
     file_to_plot = 'Bitcoin Historical Data_test.csv'
@@ -211,8 +207,15 @@ if __name__ == '__main__':
         format="YYYY-MM-DD"
     )
     
-    selected_start_date = date_range[0]
-    selected_end_date = date_range[1]
+    # Get the selected Python date objects
+    selected_start_date = date_range[0] 
+    selected_end_date = date_range[1]   
+
+    # --- CRITICAL FIX: Convert Python date objects to Pandas Timestamps ---
+    # This resolves the TypeError by ensuring the filtering comparison is valid.
+    start_date_filter = pd.to_datetime(selected_start_date)
+    end_date_filter = pd.to_datetime(selected_end_date)
+    # ----------------------------------------------------------------------
     
-    # 3. Call the plotting function with the selected dates
-    plot_timeseries_data(file_to_plot, selected_start_date, selected_end_date)
+    # 3. Call the plotting function with the CORRECTLY TYPED dates
+    plot_timeseries_data(file_to_plot, start_date_filter, end_date_filter)
