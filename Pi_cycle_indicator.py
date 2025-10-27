@@ -1,8 +1,9 @@
-import numpy as np  # Required for efficient nearest-neighbor finding
+import streamlit as st # <-- NEW: Import Streamlit for web display
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-from matplotlib.widgets import RangeSlider
+# from matplotlib.widgets import RangeSlider # <-- REMOVED: Matplotlib widgets won't work in Streamlit
 
 
 # import pandas_ta as ta  <-- Removed pandas_ta import
@@ -23,23 +24,22 @@ def sma(series, period):
 
 def plot_timeseries_data(filepath):
     """
-    Loads time series data from a CSV and plots the price with an interactive
-    range slider, hover tooltip, and the Pi-Cycle Z-Score indicator.
+    Loads time series data from a CSV and plots the price with the Pi-Cycle Z-Score indicator.
 
     Args:
         filepath (str): The path to the CSV file (e.g., 'Bitcoin Historical Data.csv').
     """
-
-    print(f"Loading data from: {filepath}...")
+    # Use st.write for user feedback in Streamlit
+    st.write(f"Loading data from: {filepath}...")
 
     try:
         # 1. Load the CSV file into a DataFrame, handling comma thousands separators
         df = pd.read_csv(filepath, thousands=',')
     except FileNotFoundError:
-        print(f"Error: The file '{filepath}' was not found. Please check the path.")
+        st.error(f"Error: The file '{filepath}' was not found. Please check the path.")
         return
     except Exception as e:
-        print(f"An error occurred while reading the CSV: {e}")
+        st.error(f"An error occurred while reading the CSV: {e}")
         return
 
     # --- Data Preprocessing ---
@@ -50,14 +50,14 @@ def plot_timeseries_data(filepath):
     # Basic column existence check
     if date_column_name not in df.columns or price_column_name not in df.columns:
         missing = [col for col in [date_column_name, price_column_name] if col not in df.columns]
-        print(f"Error: Missing required columns: {', '.join(missing)}. Available columns: {df.columns.tolist()}")
+        st.error(f"Error: Missing required columns: {', '.join(missing)}. Available columns: {df.columns.tolist()}")
         return
 
     # 2. Convert the Date column to proper datetime objects (MM/DD/YYYY)
     try:
         df[date_column_name] = pd.to_datetime(df[date_column_name], format='%m/%d/%Y')
     except ValueError as e:
-        print(f"Error parsing dates: {e}. Check if the date format is strictly 'MM/DD/YYYY'.")
+        st.error(f"Error parsing dates: {e}. Check if the date format is strictly 'MM/DD/YYYY'.")
         return
 
     # Set the Date column as the index
@@ -94,9 +94,6 @@ def plot_timeseries_data(filepath):
     # 2. Calculate the Pi-Cycle Ratio (The base value)
     Pi_cycle_ratio = 2 - (ma_350_double / ma_111).replace([np.inf, -np.inf], np.nan)
 
-    # CRITICAL FIX: Calculate the Pi-Cycle Oscillator (Centered value)
-
-
     # 3. Calculate Z-Score components
     thresholdTop = 1.05
     thresholdBottom = -1.10
@@ -123,11 +120,11 @@ def plot_timeseries_data(filepath):
     # --- Plotting Setup ---
 
     # 1. Setup a figure with two subplots: Price (ax1) and Z-Score (ax2)
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 12), sharex=True,
+    # Adjust fig size for better viewing in Streamlit
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), sharex=True,
                                    gridspec_kw={'height_ratios': [3, 1]})
 
-    # Adjust space for the slider widget at the very bottom
-    fig.subplots_adjust(bottom=0.25)
+    # fig.subplots_adjust(bottom=0.25) # <-- REMOVED: No need for bottom space without slider
 
     # The main price axis is now ax1
     ax = ax1
@@ -206,114 +203,29 @@ def plot_timeseries_data(filepath):
     ax2.xaxis.set_major_formatter(date_formatter)
     fig.autofmt_xdate(rotation=45)
 
-    # --- Interactive Plotting Setup (Original Code Retained) ---
+    # --- REMOVED INTERACTIVE WIDGET CODE (RangeSlider, Hover, Connects) ---
+    # The following interactive Matplotlib code must be removed or commented out 
+    # because it is not compatible with the Streamlit web environment.
 
     # 1. Convert dates to Matplotlib's internal numerical format, which the slider uses
-    dates_num = mdates.date2num(price_data.index.to_pydatetime())
+    # dates_num = mdates.date2num(price_data.index.to_pydatetime())
 
-    # 3. Setup Annotation (Tooltip) - using ax1
-    annot = ax1.annotate("",
-                         xy=(0, 0),
-                         xytext=(20, 20),
-                         textcoords="offset points",
-                         bbox=dict(boxstyle="round", fc="yellow", alpha=0.9, ec="black"),
-                         arrowprops=dict(arrowstyle="->", connectionstyle="arc3", color="gray"))
-    annot.set_visible(False)
+    # 3. Setup Annotation (Tooltip) - REMOVED
 
-    # 4. Define the hover event handler
-    def on_hover(event):
-        # Check if the mouse is over the main price plot area (ax1)
-        if event.inaxes == ax1 and event.xdata is not None:
+    # 4. Define the hover event handler - REMOVED
 
-            dates_num_valid = mdates.date2num(price_data.index.to_pydatetime())
+    # 5. Setup Slider Axes - REMOVED
 
-            closest_index_pos = np.argmin(np.abs(dates_num_valid - event.xdata))
+    # 6. Create the Range Slider - REMOVED
 
-            date = price_data.index[closest_index_pos]
-            price = price_data.values[closest_index_pos]
+    # 7. Define the range update function - REMOVED
 
-            xdata = dates_num_valid[closest_index_pos]
-            ydata = price
+    # 8. Connect the update function to the slider's change event - REMOVED
 
-            date_str = date.strftime('%Y-%m-%d')
-            text = f"Date: {date_str}\nPrice: ${price:,.2f}"
-
-            annot.xy = (xdata, ydata)
-            if not np.isnan(price):
-                annot.set_text(text)
-                if not annot.get_visible():
-                    annot.set_visible(True)
-            else:
-                annot.set_visible(False)
-
-            fig.canvas.draw_idle()
-        else:
-            if annot.get_visible():
-                annot.set_visible(False)
-                fig.canvas.draw_idle()
-
-    # 5. Setup Slider Axes (position defined as [left, bottom, width, height])
-    slider_ax = fig.add_axes([0.15, 0.05, 0.7, 0.03])
-
-    # 6. Create the Range Slider
-    slider = RangeSlider(
-        ax=slider_ax,
-        label='Time Range Selector',
-        valmin=dates_num.min(),
-        valmax=dates_num.max(),
-        valinit=[dates_num.min(), dates_num.max()]
-    )
-
-    # Helper to convert numerical slider value back to a formatted date string
-    def format_date_label(val):
-        return mdates.num2date(val).strftime('%Y-%m-%d')
-
-    # Add initial date labels to the slider
-    slider_ax.set_xticks(slider.valinit)
-    slider_ax.set_xticklabels([format_date_label(v) for v in slider.valinit], rotation=0)
-
-    # 7. Define the range update function
-    def update(val):
-        min_date = mdates.num2date(val[0]).replace(tzinfo=None)
-        max_date = mdates.num2date(val[1]).replace(tzinfo=None)
-
-        # Update the plot's X limits to zoom in (affects both ax1 and ax2 due to sharex=True)
-        ax1.set_xlim(min_date, max_date)
-
-        # Filter ALL relevant data for the selected range
-        price_range = price_data[(price_data.index >= min_date) & (price_data.index <= max_date)]
-        ma_111_range = ma_111[(ma_111.index >= min_date) & (ma_111.index <= max_date)]
-        ma_350_double_range = ma_350_double[(ma_350_double.index >= min_date) & (ma_350_double.index <= max_date)]
-
-        # CRITICAL FIX: Determine y_max based on the maximum of ALL plotted series
-        all_y_values = pd.concat([price_range, ma_111_range, ma_350_double_range])
-        all_y_values.dropna(inplace=True)
-
-        if not all_y_values.empty:
-            y_min = all_y_values.min() * 0.90  # Adjust buffer for log scale
-            y_max = all_y_values.max() * 1.10  # Add a larger buffer for the ceiling
-
-            # Ensure the minimum is above zero for the log scale
-            if y_min <= 0:
-                y_min = all_y_values[all_y_values > 0].min() * 0.90 if not all_y_values[all_y_values > 0].empty else 1
-
-            ax1.set_ylim(y_min, y_max)
-
-        # Update slider labels to show the current selected range
-        slider_ax.set_xticks(val)
-        slider_ax.set_xticklabels([format_date_label(v) for v in val])
-
-        # Redraw the figure to apply changes
-        fig.canvas.draw_idle()
-
-    # 8. Connect the update function to the slider's change event
-    slider.on_changed(update)
-
-    # 9. Connect the hover handler
-    fig.canvas.mpl_connect("motion_notify_event", on_hover)
-
-    # Run the update function once to ensure the initial view is set correctly
-    update(slider.val)
+    # 9. Connect the hover handler - REMOVED
+    
+    # Run the update function once to ensure the initial view is set correctly - REMOVED
+    # update(slider.val)
 
     # Add the two-line Watermark using fig.text()
     watermark_text = 'Gonçalo Duarte'
@@ -329,11 +241,15 @@ def plot_timeseries_data(filepath):
         zorder=1
     )
 
-    # Show the interactive plot
-    plt.show()
+    # Show the plot using Streamlit
+    st.pyplot(fig) # <-- CRITICAL CHANGE: Replace plt.show() with st.pyplot(fig)
 
 
 if __name__ == '__main__':
+    st.title("Bitcoin Pi-Cycle Indicator Dashboard") # <-- NEW: Streamlit Title
+    
     # Define the file path from your uploaded data
     file_to_plot = 'Bitcoin Historical Data_test.csv'
+    
+    # Run the plotting function
     plot_timeseries_data(file_to_plot)
