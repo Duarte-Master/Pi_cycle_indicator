@@ -132,10 +132,15 @@ def plot_timeseries_data(filepath, start_date=None, end_date=None):
     # --- Z-Score Subplot (Row 2) ---
 
     # 4. Add Z-Score Line
+    if not zScore_valid.empty:
+        latest_z_score = zScore_valid.iloc[-1]
+    else:
+        latest_z_score = np.nan
+
     fig.add_trace(
         go.Scatter(
             x=zScore_valid.index, y=zScore_valid.values,
-            mode='lines', name='Pi-Cycle Z-Score',
+            mode='lines', name=f'Pi Cycle Z-Score: {latest_z_score:.2f}',
             line=dict(color='red', width=2),
             hovertemplate='Date: %{x}<br>Z-Score: %{y:.2f}<extra></extra>'
         ),
@@ -241,6 +246,7 @@ if __name__ == '__main__':
     
     # 3. Call the plotting function with the CORRECTLY TYPED dates
     plot_timeseries_data(file_to_plot, start_date_filter, end_date_filter)
+
 
 
 
